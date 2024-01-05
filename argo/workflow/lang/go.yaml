@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: go
+  labels:
+    lang: go
+spec:
+  arguments:
+    parameters:
+      - name: path
+        value: app
+  volumeClaimTemplates:
+    - metadata:
+        name: work
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 64Mi
+  templates:
+    - name: go-ci
+      inputs:
+        parameters:
+          - name: path
+      container:
+        image: golang:1.21.5
+        volumeMounts:
+          - mountPath: /work
+            name: work
+        workingDir: /work/{{inputs.parameters.path}}
+        env:
+          # Because this is not a Gomodule, we must turn modules off.
+          - name: GO111MODULE
+            value: "off"
+        command:
+          - go
+        args:
+          - build
+          - -v
+          - -o
+          - hello-world
+          - ./...

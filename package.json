@@ -1,0 +1,15 @@
+{
+  "name": "@bertelli.luca/ephemeral-test-environment",
+  "type": "module",
+  "version": "0.0.1",
+  "release": {
+    "branches": [
+      "main"
+    ]
+  },
+  "private": true,
+  "devDependencies": {
+    "semantic-release": "^22.0.12"
+  },
+  "repository": "https://github.com/banshee86vr/ephemeral-test-environment.git"
+}
