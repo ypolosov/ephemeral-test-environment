@@ -1,0 +1,124 @@
+# SUMMARY:
+#
+# Build and push an image using Docker Buildkit.
+#
+# DESCRIPTION:
+#
+# This does not need privileged access, unlike Docker in Docker (DIND). It has three stages:
+#
+# * clone the Git repository
+# * build the binary
+# * build and push the image containing the binary
+#
+# USAGE:
+#
+# Publishing images requires an access token. For github.com you can create one at https://github.com/settings/tokens
+# This needs to be mounted as `$DOCKER_CONFIG/config.json`. To do this, you'll need to create a secret as follows:
+#
+#    export DOCKER_USERNAME=******
+#    export DOCKER_TOKEN=******
+#    kubectl create secret generic docker-config --from-literal="config.json={\"auths\": {\"https://ghcr.io/\": {\"auth\": \"$(echo -n $DOCKER_USERNAME:$DOCKER_TOKEN|base64)\"}}}"
+#
+# REFERENCES:
+#
+# * https://github.com/moby/buildkit#expose-buildkit-as-a-tcp-service
+# * https://blog.alexellis.io/building-containers-without-docker/
+# * https://hub.docker.com/r/moby/buildkit
+#
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: cd
+spec:
+  arguments:
+    parameters:
+      - name: repo
+        value: banshee86vr/ephemeral-test-environment.git
+      - name: branch
+        value: main
+      - name: path-chart
+        value: hello-world-app/hello-world
+      - name: image
+        value: ghcr.io/banshee86vr/hello-world:latest
+      - name: vcluster-name
+        value: demo-pr-request
+  entrypoint: main
+  # We use a volume claim template so that we can have a shared workspace.
+  volumeClaimTemplates:
+    - metadata:
+        name: work
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 64Mi
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: clone
+            template: tmpl-clone
+            arguments:
+              parameters:
+                - name: repo
+                  value: "{{workflow.parameters.repo}}"
+                - name: branch
+                  value: "{{workflow.parameters.branch}}"
+                - name: path
+                  value: "{{workflow.parameters.path-chart}}"
+          - name: vcluster
+            template: tmpl-vcluster
+            arguments:
+              parameters:
+                - name: name
+                  value: "{{workflow.parameters.vcluster-name}}"
+          # - name: Install the helm chart
+          #   template: deploy
+          #   arguments:
+          #     parameters:
+          #       - name: image
+          #         value: "{{workflow.parameters.image}}"
+          #   depends: "clone"
+    - name: tmpl-clone
+      inputs:
+        parameters:
+          - name: repo
+          - name: branch
+      container:
+        volumeMounts:
+          - mountPath: /work
+            name: work
+        env:
+          - name: BUILDKITD_FLAGS
+            value: --oci-worker-no-process-sandbox
+          - name: GH_TOKEN  # name of env var
+            valueFrom:
+              secretKeyRef:
+                name: github-token     # name of an existing k8s secret
+                key: token
+        image: alpine/git:v2.26.2
+        workingDir: /work
+        # Do a shallow clone, which is the fastest way to clone, by using the
+        # --depth, --branch, and --single-branch options
+        args:
+          - clone
+          - --depth
+          - "1"
+          - --branch
+          - "{{inputs.parameters.branch}}"
+          - --single-branch
+          - "https://workflow:$(GH_TOKEN)@github.com/{{inputs.parameters.repo}}"
+          - .
+    - name: tmpl-vcluster
+      inputs:
+        parameters:
+          - name: name
+      container:
+        image: ghcr.io/loft-sh/vcluster-cli:0.18.1
+        command:
+          - vcluster
+        args:
+          - create
+          - "{{inputs.parameters.name}}"
+          - --namespace
+          - demo-pr-request
