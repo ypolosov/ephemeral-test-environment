@@ -56,7 +56,7 @@ spec:
     - name: main
       dag:
         tasks:
-          - name: clone
+          - name: clone-repo
             template: tmpl-clone
             arguments:
               parameters:
@@ -64,21 +64,23 @@ spec:
                   value: "{{workflow.parameters.repo}}"
                 - name: branch
                   value: "{{workflow.parameters.branch}}"
-                - name: path
-                  value: "{{workflow.parameters.path-chart}}"
-          - name: vcluster
+          - name: create-vcluster
             template: tmpl-vcluster
             arguments:
               parameters:
                 - name: name
                   value: "{{workflow.parameters.vcluster-name}}"
-          # - name: Install the helm chart
-          #   template: deploy
-          #   arguments:
-          #     parameters:
-          #       - name: image
-          #         value: "{{workflow.parameters.image}}"
-          #   depends: "clone"
+          - name: install-helm-chart
+            template: tmpl-deploy
+            arguments:
+              parameters:
+                - name: name
+                  value: "{{workflow.parameters.vcluster-name}}"
+                - name: path-chart
+                  value: "{{workflow.parameters.path-chart}}"
+                - name: image
+                  value: "{{workflow.parameters.image}}"
+            depends: "clone-repo && create-vcluster"
     - name: tmpl-clone
       inputs:
         parameters:
@@ -95,6 +97,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: github-token     # name of an existing k8s secret
+                namespace: argo
                 key: token
         image: alpine/git:v2.26.2
         workingDir: /work
@@ -114,7 +117,7 @@ spec:
         parameters:
           - name: name
       container:
-        image: ghcr.io/loft-sh/vcluster-cli:0.18.1
+        image: ghcr.io/loft-sh/vcluster-cli:0.19
         command:
           - vcluster
         args:
@@ -122,3 +125,33 @@ spec:
           - "{{inputs.parameters.name}}"
           - --namespace
           - demo-pr-request
+          - --isolate
+          - --connect=false
+    - name: tmpl-deploy
+      inputs:
+        parameters:
+          - name: name
+          - name: path-chart
+          - name: image
+      container:
+        volumeMounts:
+          - mountPath: /work
+            name: work
+        image: ghcr.io/loft-sh/vcluster-cli:0.19
+        workingDir: /work/{{inputs.parameters.path-chart}}
+        command:
+          - vcluster
+        args:
+          - connect
+          - "{{inputs.parameters.name}}"
+          - --namespace
+          - demo-pr-request
+          - --
+          - helm
+          - upgrade
+          - --install
+          - "{{inputs.parameters.name}}"
+          - .
+          - --namespace
+          - "{{inputs.parameters.name}}"
+          - --create-namespace

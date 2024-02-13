@@ -28,7 +28,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: buildkit
+  name: ci
 spec:
   arguments:
     parameters:
@@ -54,33 +54,33 @@ spec:
     - name: main
       dag:
         tasks:
-          - name: clone
-            template: clone
+          - name: clone-repo
+            template: tmpl-clone
             arguments:
               parameters:
                 - name: repo
                   value: "{{workflow.parameters.repo}}"
                 - name: branch
                   value: "{{workflow.parameters.branch}}"
-          - name: build
+          - name: build-code
             templateRef:
               name: go
-              template: go-ci
+              template: tmpl-go
             arguments:
               parameters:
                 - name: path
                   value: "{{workflow.parameters.path}}"
-            depends: "clone"
-          - name: image
-            template: image
+            depends: "clone-repo"
+          - name: build-push-image
+            template: tmpl-image
             arguments:
               parameters:
                 - name: path
                   value: "{{workflow.parameters.path}}"
                 - name: image
                   value: "{{workflow.parameters.image}}"
-            depends: "build"
-    - name: clone
+            depends: "build-code"
+    - name: tmpl-clone
       inputs:
         parameters:
           - name: repo
@@ -110,7 +110,7 @@ spec:
           - --single-branch
           - "https://workflow:$(GH_TOKEN)@github.com/{{inputs.parameters.repo}}"
           - .
-    - name: image
+    - name: tmpl-image
       inputs:
         parameters:
           - name: path
