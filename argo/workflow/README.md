@@ -30,7 +30,7 @@ You should see a list of pods running with names prefixed with `workflow-control
 
 ### 3. Patch argo-server authentication
 
-As reported on the official documentation: https://argo-workflows.readthedocs.io/en/latest/quick-start/#patch-argo-server-authentication
+As reported on the official documentation: <https://argo-workflows.readthedocs.io/en/latest/quick-start/#patch-argo-server-authentication>
 
 The argo-server (and thus the UI) defaults to client authentication, which requires clients to provide their Kubernetes bearer token to authenticate. For more information, refer to the Argo Server Auth Mode documentation. We will switch the authentication mode to `server` so that we can bypass the UI login for now:
 
@@ -65,6 +65,7 @@ This command adds `cluster-admin` clusterrole to `argo:argo-server` and `argo:de
 kubectl create clusterrolebinding argo-admin-server --clusterrole=cluster-admin --serviceaccount=argo:argo-server -n argo
 kubectl create clusterrolebinding argo-admin-default --clusterrole=cluster-admin --serviceaccount=argo:default -n argo
 ```
+
 > In production evironments it's strongly recommended to create a dedicated role to these service accounts allowing only required verbs on the resources managed by the workflows.
 
 ### 6. Prepare secrets required by the pipelines
@@ -130,7 +131,7 @@ To submit the CD pipeline, you can use the [official APIs](https://argo-workflow
 <ArgoWorkflow URL>/api/v1/workflows/{namespace}/submit
 ```
 
-Or, alternatively, you can submit the workflow using the UI:
+Alternatively, you can submit the workflow using the UI:
 
 ![Submit CD workflow via UI](images/3_cd_submit.png)
 
