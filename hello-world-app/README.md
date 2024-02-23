@@ -1,6 +1,6 @@
 # Go Hello World Web Application - Print a beautiful ASCII octopus
 
-This is a basic web application written in Go that displays an ASCII octopus when accessed calling the exposed HTTP listener.
+This folder contains a basic web application in Go that displays an ASCII octopus when accessed by calling the exposed HTTP listener.
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ Make sure you have Go installed on your machine. You can download it from [here]
 
 ## Docker
 
-Alternatively, you can use Docker to run the application in a container and deploying it on Kubernetes.
+Alternatively, you can use Docker to run the application in a container and deploy it on Kubernetes.
 
 1. Build the Docker image:
 
