@@ -33,13 +33,13 @@ spec:
   arguments:
     parameters:
       - name: repo
-        value: banshee86vr/ephemeral-test-environment.git
+        value: ypolosov/ephemeral-test-environment.git
       - name: branch
         value: main
       - name: path-chart
         value: hello-world-app/hello-world
       - name: image
-        value: ghcr.io/banshee86vr/hello-world:latest
+        value: ghcr.io/ypolosov/hello-world:latest
       - name: vcluster-name
         value: demo-pr-request
   entrypoint: main
